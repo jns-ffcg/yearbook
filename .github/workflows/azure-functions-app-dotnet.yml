@@ -21,7 +21,7 @@ name: Deploy DotNet project to Azure Function App
 on:
   push:
     branches:
-    - ["main"]
+    - "main"
 
 env:
   AZURE_FUNCTIONAPP_NAME: 'jns-yearbook'
