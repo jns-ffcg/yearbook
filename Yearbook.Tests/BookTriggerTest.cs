@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using InvoiceProcessor.Tests.Unit.TestCommon;
 using Microsoft.AspNetCore.Http;
@@ -98,6 +99,94 @@ public class BookTriggerTest
         var pages = storedItem.GetType().GetProperty("pages").GetValue(storedItem, null);
         Assert.Equal("Ny bok", name);
         Assert.Equal(22, pages);
+    }
 
+
+    public class BookTestData : IEnumerable<object[]>
+    {
+        public IEnumerator<object[]> GetEnumerator()
+        {
+            yield return new object[] { new BookItem { Name = "Bok 1", Pages = 20 } };
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    [Theory]
+    [ClassData(typeof(BookTestData))]
+    public async void FindBook_shall_respond_with_200_if_book_with_id_is_found(BookItem bookFromComos)
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        var cosmosResponse = new BookItem();
+
+        request.Setup(x => x.ContentType).Returns("application/json");
+        var response = (OkObjectResult)await YearbookApp.BookTrigger.FindBook(request.Object, bookFromComos, log.Object);
+        Assert.Equal(200, response.StatusCode);
+        var book = (BookItem)response.Value;
+        Assert.Equal("Bok 1", book.Name);
+    }
+
+    [Fact]
+    public async void FindBook_shall_respond_with_404_if_book_with_id_is_not_found()
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        BookItem? cosmosResponse = null;
+        request.Setup(x => x.ContentType).Returns("application/json");
+        var response = (NotFoundObjectResult)await YearbookApp.BookTrigger.FindBook(request.Object, cosmosResponse, log.Object);
+        Assert.Equal(404, response.StatusCode);
+        var notFoundResponse = (DefaultResponse)response.Value;
+        Assert.Equal("Book with ID not found", notFoundResponse.Message);
+    }
+
+    [Fact]
+    public async void UpdateBook_shall_update_book_with_new_values()
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        var cosmos = new AsyncCollector<dynamic>();
+        var bookFromCosmos = new BookItem { Name = "Existing book", Pages = 123 };
+        var payload = new
+        {
+            name = "Book with update name",
+            pages = 999
+        };
+        var payloadAsJson = JsonConvert.SerializeObject(payload);
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(payloadAsJson));
+        request.Setup(x => x.Body).Returns(stream);
+        var response = (OkObjectResult)await YearbookApp.BookTrigger.UpdateBook(request.Object, "aa-bb-cc", bookFromCosmos, cosmos, log.Object);
+        Assert.Equal(200, response.StatusCode);
+        Assert.IsType<DefaultResponse>(response.Value);
+        var responseBody = (DefaultResponse)response.Value;
+        Assert.Equal("Book successfully updated", responseBody.Message);
+        Assert.Single(cosmos.Items);
+    }
+
+    [Fact]
+    public async void UpdateBook_shall_return_404_if_no_book_with_id_is_found()
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        var cosmos = new AsyncCollector<dynamic>();
+        BookItem? bookFromCosmos = null;
+        var payload = new
+        {
+            name = "Book with update name",
+            pages = 999
+        };
+        var id = "aa-bb-cc";
+        var payloadAsJson = JsonConvert.SerializeObject(payload);
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(payloadAsJson));
+        request.Setup(x => x.Body).Returns(stream);
+        var response = await YearbookApp.BookTrigger.UpdateBook(request.Object, id, bookFromCosmos, cosmos, log.Object);
+        Assert.IsType<NotFoundObjectResult>(response);
+        var notFound = (NotFoundObjectResult)response;
+        Assert.Equal(404, notFound.StatusCode);
+        var responseBody = (DefaultResponse)notFound.Value;
+        Assert.Equal("No book found with provided ID", responseBody.Message);
     }
 }
