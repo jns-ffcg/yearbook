@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -122,6 +124,26 @@ namespace YearbookApp
             });
 
             var response = new OkObjectResult(new DefaultResponse("Book successfully updated"));
+            return response;
+        }
+
+        [FunctionName(nameof(DeleteBook))]
+        public static async Task<IActionResult> DeleteBook(
+           [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "book/{id}")] HttpRequest req,
+           string id,
+           [CosmosDB(databaseName: "Yearbook", containerName: "Books", Connection = "ConnectionString", Id = "{id}", PartitionKey = "{id}")] BookItem book,
+           [CosmosDB(databaseName: "Yearbook", containerName: "Books", Connection = "ConnectionString")] CosmosClient client,
+           ILogger log)
+        {
+            log.LogInformation($"Delete book with id {id}");
+            if (book == null)
+            {
+                return new NotFoundObjectResult(new DefaultResponse("No book found with provided ID"));
+            }
+            var container = client.GetContainer("Yearbook", "Books");
+
+            await container.DeleteItemAsync<BookItem>(id, new PartitionKey(id));
+            var response = new OkObjectResult(new DefaultResponse("Book successfully deleted"));
             return response;
         }
     }

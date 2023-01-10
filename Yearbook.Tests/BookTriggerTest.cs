@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Azure.Cosmos;
 using Moq;
 using Newtonsoft.Json;
 
@@ -188,5 +189,40 @@ public class BookTriggerTest
         Assert.Equal(404, notFound.StatusCode);
         var responseBody = (DefaultResponse)notFound.Value;
         Assert.Equal("No book found with provided ID", responseBody.Message);
+    }
+
+    [Fact]
+    public async void DeleteBook_shall_return_404_if_no_book_with_id_is_found()
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        var cosmosClient = new Mock<CosmosClient>();
+        BookItem? bookFromCosmos = null;
+        var id = "aa-bb-cc";
+        var response = await YearbookApp.BookTrigger.DeleteBook(request.Object, id, bookFromCosmos, cosmosClient.Object, log.Object);
+        Assert.IsType<NotFoundObjectResult>(response);
+        var notFound = (NotFoundObjectResult)response;
+        Assert.Equal(404, notFound.StatusCode);
+        var responseBody = (DefaultResponse)notFound.Value;
+        Assert.Equal("No book found with provided ID", responseBody.Message);
+    }
+
+    [Fact]
+    public async void DeleteBook_return_ok_when_book_is_deleted()
+    {
+        var log = new Mock<ILogger>();
+        var request = new Mock<HttpRequest>();
+        var cosmosContainer = new Mock<Container>();
+        cosmosContainer.Setup(m => m.DeleteItemAsync<object>(It.IsAny<string>(), It.IsAny<PartitionKey>(), null, It.IsAny<CancellationToken>()));
+        var cosmosClient = new Mock<CosmosClient>();
+        cosmosClient.Setup(x => x.GetContainer("Yearbook", "Books")).Returns(cosmosContainer.Object);
+        var bookFromCosmos = new BookItem { Name = "Existing book", Pages = 123 };
+        var id = "aa-bb-cc";
+        var response = await YearbookApp.BookTrigger.DeleteBook(request.Object, id, bookFromCosmos, cosmosClient.Object, log.Object);
+        Assert.IsType<OkObjectResult>(response);
+        var ok = (OkObjectResult)response;
+        Assert.Equal(200, ok.StatusCode);
+        var responseBody = (DefaultResponse)ok.Value;
+        Assert.Equal("Book successfully deleted", responseBody.Message);
     }
 }
