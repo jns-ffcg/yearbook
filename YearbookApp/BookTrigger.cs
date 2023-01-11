@@ -42,7 +42,7 @@ namespace YearbookApp
             return response;
         }
 
-        [FunctionName("Add_book")]
+        [FunctionName(nameof(AddBook))]
         public static async Task<IActionResult> AddBook(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "book")] HttpRequest req,
             [CosmosDB(databaseName: "Yearbook", containerName: "Books", Connection = "ConnectionString")] IAsyncCollector<dynamic> documentsOut,
@@ -75,14 +75,17 @@ namespace YearbookApp
             }
             Console.WriteLine(book.Name);
 
+            var bookId = System.Guid.NewGuid().ToString();
             await documentsOut.AddAsync(new
             {
-                id = System.Guid.NewGuid().ToString(),
+                id = bookId,
                 name = book.Name,
                 pages = 22,
             });
 
-            var response = new OkObjectResult("Ok");
+            CreateItemResponse createItemResponse = new();
+            createItemResponse.Id = bookId;
+            var response = new OkObjectResult(createItemResponse);
             response.ContentTypes.Add("application/json");
             return response;
         }

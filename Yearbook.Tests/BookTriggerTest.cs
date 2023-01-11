@@ -93,7 +93,12 @@ public class BookTriggerTest
         request.Setup(x => x.Body).Returns(stream);
         Assert.Equal(0, cosmos.Items.Count);
         var response = (OkObjectResult)await YearbookApp.BookTrigger.AddBook(request.Object, cosmos, log.Object);
-        Assert.Equal("Ok", response.Value);
+        Assert.IsType<CreateItemResponse>(response.Value);
+        var createItemResponse = (CreateItemResponse)response.Value;
+
+        Guid guidResult;
+        Assert.True(Guid.TryParse(createItemResponse.Id, out guidResult));
+
         Assert.Equal(1, cosmos.Items.Count);
         dynamic storedItem = (dynamic)cosmos.Items.First();
         var name = storedItem.GetType().GetProperty("name").GetValue(storedItem, null);
