@@ -6,6 +6,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.CosmosDB" Version="4.0.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.1.1" />
+    <Reference Include="IO.Swagger">
+      <HintPath>libs\IO.Swagger.dll</HintPath>
+    </Reference>
+    <Reference Include="RestSharp">
+      <HintPath>libs\RestSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
