@@ -30,12 +30,23 @@ namespace YearbookApp
         public string GrantType { get; set; }
     }
 
+
+    public class StravaActivitesForAthleteQueueItem
+    {
+        [JsonProperty("athlete")]
+        public int Athelete { get; set; }
+
+        [JsonProperty("count")]
+        public int Count { get; set; }
+    }
+
     public static class StravaFunction
     {
         [FunctionName(nameof(Auth))]
         public static async Task<IActionResult> Auth(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "strava/auth/{code}")] HttpRequest req,
             string code,
+            [CosmosDB(databaseName: "Yearbook", containerName: "Atheletes", Connection = "ConnectionString")] IAsyncCollector<dynamic> documentsOut,
             ILogger log)
         {
             HttpClient httpClient = new();
@@ -51,7 +62,11 @@ namespace YearbookApp
             var stringData = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode)
             {
+
+                AtheleteAuthItem atheleteAuth = new();
+
                 var result = JsonConvert.DeserializeObject<object>(stringData);
+                atheleteAuth.AccessToken = result.
                 return new OkObjectResult(result);
             }
             return new OkObjectResult(new DefaultResponse("No..."));
@@ -82,6 +97,29 @@ namespace YearbookApp
                 var response = new DefaultResponse("No...");
                 return new OkObjectResult(response);
             }
+        }
+
+        [ServiceBusAccount("SERVICEBUS_CONNECTION")]
+        [FunctionName(nameof(GetActivitiesForAthlete))]
+        public static async Task GetActivitiesForAthlete(
+            [ServiceBus("strava_activities")] IAsyncCollector<dynamic> outputServiceBus2,
+            [ServiceBusTrigger("strava_activities")] StravaActivitesForAthleteQueueItem queueItem,
+            Int32 deliveryCount,
+            DateTime enqueuedTimeUtc,
+            string messageId,
+            ILogger log
+        )
+        {
+            log.LogInformation($"Fetch activities for athlete: {queueItem.Athelete} - {queueItem.Count}");
+            if (queueItem.Count > 5)
+            {
+                log.LogInformation($"Done!");
+                return;
+            }
+            StravaActivitesForAthleteQueueItem newQueueItem = new();
+            newQueueItem.Athelete = queueItem.Athelete;
+            newQueueItem.Count = queueItem.Count + 1;
+            await outputServiceBus2.AddAsync(newQueueItem);
         }
     }
 }
