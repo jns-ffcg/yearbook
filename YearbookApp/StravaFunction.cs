@@ -66,7 +66,6 @@ namespace YearbookApp
                 AtheleteAuthItem atheleteAuth = new();
 
                 var result = JsonConvert.DeserializeObject<object>(stringData);
-                atheleteAuth.AccessToken = result.
                 return new OkObjectResult(result);
             }
             return new OkObjectResult(new DefaultResponse("No..."));
@@ -102,8 +101,8 @@ namespace YearbookApp
         [ServiceBusAccount("SERVICEBUS_CONNECTION")]
         [FunctionName(nameof(GetActivitiesForAthlete))]
         public static async Task GetActivitiesForAthlete(
-            [ServiceBus("strava_activities")] IAsyncCollector<dynamic> outputServiceBus2,
-            [ServiceBusTrigger("strava_activities")] StravaActivitesForAthleteQueueItem queueItem,
+            [ServiceBus("yearbook-dev-servicebus-queue-strava-activities")] IAsyncCollector<dynamic> outputServiceBus2,
+            [ServiceBusTrigger("yearbook-dev-servicebus-queue-strava-activities")] StravaActivitesForAthleteQueueItem queueItem,
             Int32 deliveryCount,
             DateTime enqueuedTimeUtc,
             string messageId,

@@ -4,6 +4,11 @@
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="GraphQL" Version="7.2.2" />
+    <PackageReference Include="GraphQL.MicrosoftDI" Version="7.2.2" />
+    <PackageReference Include="GraphQL.NewtonsoftJson" Version="7.2.2" />
+    <PackageReference Include="GraphQL.SystemTextJson" Version="7.2.2" />
+    <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.CosmosDB" Version="4.0.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.ServiceBus" Version="5.8.1" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.1.1" />
